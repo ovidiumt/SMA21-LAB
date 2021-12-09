@@ -4,7 +4,12 @@ import androidx.annotation.NonNull;
 import androidx.annotation.Nullable;
 import androidx.appcompat.app.AppCompatActivity;
 
+import android.content.Context;
+import android.content.Intent;
+import android.content.SharedPreferences;
 import android.os.Bundle;
+import android.view.View;
+import android.widget.AdapterView;
 import android.widget.Button;
 import android.widget.ListView;
 import android.widget.TextView;
@@ -14,6 +19,7 @@ import com.google.firebase.database.DataSnapshot;
 import com.google.firebase.database.DatabaseError;
 import com.google.firebase.database.DatabaseReference;
 import com.google.firebase.database.FirebaseDatabase;
+import com.upt.cti.smartwallet.model.AppState;
 import com.upt.cti.smartwallet.model.Payment;
 import com.upt.cti.smartwallet.ui.PaymentAdapter;
 
@@ -21,13 +27,32 @@ import java.util.ArrayList;
 import java.util.List;
 
 public class MainActivity2 extends AppCompatActivity {
+    private static final String TAG_MONTH = "";
+
+    public enum Month {
+        January, February, March, April, May, June, July, August,
+        September, October, November, December;
+
+        public static int monthNameToInt(Month month) {
+            return month.ordinal();
+        }
+
+        public static Month intToMonthName(int index) {
+            return Month.values()[index];
+        }
+
+        public static int monthFromTimestamp(String timestamp) {
+            int month = Integer.parseInt(timestamp.substring(5, 7));
+            return month - 1;
+        }
+    }
     private DatabaseReference databaseReference;
     private List<Payment> payments = new ArrayList<>();
     private TextView tStatus;
-    private Button bPrevious;
-    private Button bNext;
-    private Button bAdd;
     private ListView listPayments;
+    private final static String PREFERENCES_SETTINGS = "prefs_settings";
+    private SharedPreferences sharedPreferences;
+    private Integer currentMonth;
 
     @Override
     protected void onCreate(Bundle savedInstanceState) {
@@ -35,49 +60,80 @@ public class MainActivity2 extends AppCompatActivity {
         setContentView(R.layout.activity_main2);
 
         tStatus = (TextView) findViewById(R.id.tStatus);
-        bPrevious = (Button) findViewById(R.id.bPrevious);
-        bNext = (Button) findViewById(R.id.bNext);
-        bAdd = (Button) findViewById(R.id.bAdd);
         listPayments = (ListView) findViewById(R.id.listPayments);
-        final PaymentAdapter adapter = new PaymentAdapter(this, R.layout.payment_item, payments);
+        PaymentAdapter adapter = new PaymentAdapter(this, R.layout.payment_item, payments);
         listPayments.setAdapter(adapter);
+        sharedPreferences =  getSharedPreferences(PREFERENCES_SETTINGS, Context.MODE_PRIVATE);
 
-        final FirebaseDatabase database = FirebaseDatabase.getInstance("https://smartwallet-5a50b-default-rtdb.firebaseio.com/");
+        currentMonth = sharedPreferences.getInt(TAG_MONTH, -1);
+        if (currentMonth == -1)
+            currentMonth = Month.monthFromTimestamp(AppState.getCurrentTimeDate());
+
+        // setup firebase
+        final FirebaseDatabase database = FirebaseDatabase.getInstance("https://smart-wallet-27310-default-rtdb.europe-west1.firebasedatabase.app/");
         databaseReference = database.getReference();
 
+        listPayments.setOnItemClickListener(new AdapterView.OnItemClickListener() {
+            @Override
+            public void onItemClick(AdapterView<?> adapterView, View view, int i, long l) {
+                AppState.get().setCurrentPayment(payments.get(i));
+                startActivity(new Intent(getApplicationContext(), AddPaymentActivity.class));
+            }
+        });
+
+        System.out.println("Aici");
         databaseReference.child("wallet").addChildEventListener(new ChildEventListener() {
             @Override
             public void onChildAdded(@NonNull DataSnapshot dataSnapshot, @Nullable String s) {
-                try{
-                    for(DataSnapshot ds: dataSnapshot.getChildren()){
-                        Payment payment = ds.getValue(Payment.class);
-                        payments.add(payment);
+                System.out.println("onChild");
+                Payment payment = dataSnapshot.getValue(Payment.class);
+                if (payment != null) {
+                    if(currentMonth == Month.monthFromTimestamp(dataSnapshot.getKey())) {
+                        payment.timestamp = dataSnapshot.getKey();
+                        if (!payments.contains(payment)) {
+                            payments.add(payment);
+                        }
+                        adapter.notifyDataSetChanged();
                     }
-                }catch (Exception e){
-
                 }
             }
 
             @Override
-            public void onChildChanged(@NonNull DataSnapshot snapshot, @Nullable String previousChildName) {
-
-            }
+            public void onChildChanged(@NonNull DataSnapshot dataSnapshot, @Nullable String s) {}
 
             @Override
-            public void onChildRemoved(@NonNull DataSnapshot snapshot) {
-
-            }
+            public void onChildRemoved(@NonNull DataSnapshot dataSnapshot) {}
 
             @Override
-            public void onChildMoved(@NonNull DataSnapshot snapshot, @Nullable String previousChildName) {
-
-            }
+            public void onChildMoved(@NonNull DataSnapshot dataSnapshot, @Nullable String s) {}
 
             @Override
-            public void onCancelled(@NonNull DatabaseError error) {
-
-            }
+            public void onCancelled(@NonNull DatabaseError databaseError) { }
         });
 
+    }
+
+    public void clicked(View view) {
+        switch (view.getId()) {
+            case R.id.bAdd:
+                AppState.get().setDatabaseReference(databaseReference);
+                AppState.get().setCurrentPayment(null);
+                startActivity(new Intent(this, AddPaymentActivity.class));
+                break;
+            case R.id.bNext:
+                ++currentMonth;
+                if(currentMonth == 12) currentMonth = 11;
+                sharedPreferences.edit().putInt(TAG_MONTH, currentMonth).apply();
+                System.out.println(Month.intToMonthName(currentMonth));
+                recreate();
+                break;
+            case R.id.bPrevious:
+                --currentMonth;
+                if(currentMonth == -1) currentMonth = 0;
+                sharedPreferences.edit().putInt(TAG_MONTH, currentMonth).apply();
+                System.out.println(Month.intToMonthName(currentMonth));
+                recreate();
+                break;
+        }
     }
 }

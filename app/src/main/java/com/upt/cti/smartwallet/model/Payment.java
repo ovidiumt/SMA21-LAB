@@ -6,11 +6,14 @@ public class Payment {
     private String name;
     private String type;
 
+    public Payment() { }
+
     public Payment(String timestamp, double cost, String name, String type) {
         this.timestamp = timestamp;
         this.cost = cost;
         this.name = name;
         this.type = type;
+        // Default constructor required for calls to DataSnapshot.getValue(User.class)
     }
 
     public String getName() {
@@ -23,5 +26,9 @@ public class Payment {
 
     public String getType() {
         return type;
+    }
+
+    public String getTimestamp(){
+        return timestamp;
     }
 }
