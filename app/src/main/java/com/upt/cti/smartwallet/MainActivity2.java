@@ -13,6 +13,7 @@ import android.widget.AdapterView;
 import android.widget.Button;
 import android.widget.ListView;
 import android.widget.TextView;
+import android.widget.Toast;
 
 import com.google.firebase.database.ChildEventListener;
 import com.google.firebase.database.DataSnapshot;
@@ -70,7 +71,7 @@ public class MainActivity2 extends AppCompatActivity {
             currentMonth = Month.monthFromTimestamp(AppState.getCurrentTimeDate());
 
         // setup firebase
-        final FirebaseDatabase database = FirebaseDatabase.getInstance("https://smart-wallet-27310-default-rtdb.europe-west1.firebasedatabase.app/");
+        final FirebaseDatabase database = FirebaseDatabase.getInstance("https://smartwallet-5a50b-default-rtdb.firebaseio.com/");
         databaseReference = database.getReference();
 
         listPayments.setOnItemClickListener(new AdapterView.OnItemClickListener() {
@@ -111,6 +112,16 @@ public class MainActivity2 extends AppCompatActivity {
             public void onCancelled(@NonNull DatabaseError databaseError) { }
         });
 
+        if (!AppState.isNetworkAvailable(this)) {
+            // has local storage already
+            if (AppState.get().hasLocalStorage(this)) {
+                payments = AppState.get().loadFromLocalBackup(this, Month.intToMonthName(currentMonth).toString());
+                tStatus.setText("Found " + payments.size() + " payments for " + Month.intToMonthName(currentMonth) + ".");
+            } else {
+                Toast.makeText(this, "This app needs an internet connection!", Toast.LENGTH_SHORT).show();
+                return;
+            }
+        }
     }
 
     public void clicked(View view) {
