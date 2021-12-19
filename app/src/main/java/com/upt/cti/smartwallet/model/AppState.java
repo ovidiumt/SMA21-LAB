@@ -56,6 +56,12 @@ public class AppState {
         return currentPayment;
     }
 
+    public String getUserID(){return currentPayment.gertUser();}
+
+    public String getTimeStamp() {return currentPayment.getTimestamp();}
+
+    public void setUserId(String uid) { currentPayment.setUser(uid);}
+
     public static String getCurrentTimeDate() {
         SimpleDateFormat sdfDate = new SimpleDateFormat("yyyy-MM-dd HH:mm:ss");
         Date now = new Date();

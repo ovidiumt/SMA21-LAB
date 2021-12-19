@@ -15,6 +15,8 @@ import android.widget.ListView;
 import android.widget.TextView;
 import android.widget.Toast;
 
+import com.google.firebase.auth.FirebaseAuth;
+import com.google.firebase.auth.FirebaseUser;
 import com.google.firebase.database.ChildEventListener;
 import com.google.firebase.database.DataSnapshot;
 import com.google.firebase.database.DatabaseError;
@@ -54,32 +56,52 @@ public class MainActivity2 extends AppCompatActivity {
     private final static String PREFERENCES_SETTINGS = "prefs_settings";
     private SharedPreferences sharedPreferences;
     private Integer currentMonth;
+    private FirebaseAuth mAuth;
+    private FirebaseAuth.AuthStateListener mAuthListener;
+    private static final int REQ_SIGNIN = 3;
 
     @Override
-    protected void onCreate(Bundle savedInstanceState) {
+    protected void onCreate(Bundle savedInstanceState)  {
         super.onCreate(savedInstanceState);
         setContentView(R.layout.activity_main2);
 
-        tStatus = (TextView) findViewById(R.id.tStatus);
-        listPayments = (ListView) findViewById(R.id.listPayments);
+        tStatus = findViewById(R.id.tStatus);
+        listPayments = findViewById(R.id.listPayments);
         PaymentAdapter adapter = new PaymentAdapter(this, R.layout.payment_item, payments);
         listPayments.setAdapter(adapter);
         sharedPreferences =  getSharedPreferences(PREFERENCES_SETTINGS, Context.MODE_PRIVATE);
+
+        mAuth = FirebaseAuth.getInstance();
+        mAuthListener = firebaseAuth -> {
+            FirebaseUser user = firebaseAuth.getCurrentUser();
+
+            if (user != null) {
+                TextView tLoginDetail = findViewById(R.id.tLoginDetail);
+                TextView tUser = findViewById(R.id.tUser);
+                tLoginDetail.setText("Firebase ID: " + user.getUid());
+                tUser.setText("Email: " + user.getEmail());
+
+                AppState.get().setUserId(user.getUid());
+                attachDBListener(user.getUid());
+            } else {
+                startActivityForResult(new Intent(getApplicationContext(),
+                        SignupActivity.class), REQ_SIGNIN);
+
+            }
+        };
+
 
         currentMonth = sharedPreferences.getInt(TAG_MONTH, -1);
         if (currentMonth == -1)
             currentMonth = Month.monthFromTimestamp(AppState.getCurrentTimeDate());
 
         // setup firebase
-        final FirebaseDatabase database = FirebaseDatabase.getInstance("https://smartwallet-5a50b-default-rtdb.firebaseio.com/");
+        final FirebaseDatabase database = FirebaseDatabase.getInstance("https://smart-wallet-27310-default-rtdb.europe-west1.firebasedatabase.app/");
         databaseReference = database.getReference();
 
-        listPayments.setOnItemClickListener(new AdapterView.OnItemClickListener() {
-            @Override
-            public void onItemClick(AdapterView<?> adapterView, View view, int i, long l) {
-                AppState.get().setCurrentPayment(payments.get(i));
-                startActivity(new Intent(getApplicationContext(), AddPaymentActivity.class));
-            }
+        listPayments.setOnItemClickListener((adapterView, view, i, l) -> {
+            AppState.get().setCurrentPayment(payments.get(i));
+            startActivity(new Intent(getApplicationContext(), AddPaymentActivity.class));
         });
 
         System.out.println("Aici");
@@ -122,6 +144,42 @@ public class MainActivity2 extends AppCompatActivity {
                 return;
             }
         }
+
+    }
+
+    private void attachDBListener(String uid) {
+        // setup firebase database
+        final FirebaseDatabase database = FirebaseDatabase.getInstance();
+        DatabaseReference databaseReference = database.getReference();
+        AppState.get().setDatabaseReference(databaseReference);
+
+        databaseReference.child("wallet").child(uid).addChildEventListener(new ChildEventListener() {
+            @Override
+            public void onChildAdded(@NonNull DataSnapshot dataSnapshot, @Nullable String s) {
+
+            }
+
+            @Override
+            public void onChildChanged(@NonNull DataSnapshot dataSnapshot, @Nullable String s) {
+
+            }
+
+            @Override
+            public void onChildRemoved(@NonNull DataSnapshot dataSnapshot) {
+
+            }
+
+            @Override
+            public void onChildMoved(@NonNull DataSnapshot dataSnapshot, @Nullable String s) {
+
+            }
+
+            @Override
+            public void onCancelled(@NonNull DatabaseError databaseError) {
+
+            }
+            //...
+        });
     }
 
     public void clicked(View view) {
@@ -145,6 +203,20 @@ public class MainActivity2 extends AppCompatActivity {
                 System.out.println(Month.intToMonthName(currentMonth));
                 recreate();
                 break;
+        }
+    }
+
+    @Override
+    public void onStart() {
+        super.onStart();
+        mAuth.addAuthStateListener(mAuthListener);
+    }
+
+    @Override
+    public void onStop() {
+        super.onStop();
+        if (mAuthListener != null) {
+            mAuth.removeAuthStateListener(mAuthListener);
         }
     }
 }
