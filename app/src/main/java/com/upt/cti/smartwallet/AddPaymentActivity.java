@@ -66,7 +66,7 @@ public class AddPaymentActivity extends AppCompatActivity {
         pCost = (EditText) findViewById(R.id.orderCost);
         tTimestamp = (TextView) findViewById(R.id.tTimeStamp);
 
-        final FirebaseDatabase database = FirebaseDatabase.getInstance("https://smart-wallet-27310-default-rtdb.europe-west1.firebasedatabase.app/");
+        final FirebaseDatabase database = FirebaseDatabase.getInstance("https://smartwallet-5a50b-default-rtdb.firebaseio.com/");
         databaseReference = database.getReference();
 
         payment = AppState.get().getCurrentPayment();
@@ -90,7 +90,7 @@ public class AddPaymentActivity extends AppCompatActivity {
                 break;
             case R.id.bCancel:
                 if (payment != null) {
-                    DatabaseReference monthReference = FirebaseDatabase.getInstance("https://smart-wallet-27310-default-rtdb.europe-west1.firebasedatabase.app/").getReference().child("wallet").child(payment.timestamp);
+                    DatabaseReference monthReference = FirebaseDatabase.getInstance("https://smartwallet-5a50b-default-rtdb.firebaseio.com/").getReference().child("wallet").child(payment.timestamp);
                     monthReference.keepSynced(true);
                     AppState.get().updateLocalBackup(this, payment, false);
                     delete(payment.timestamp);
@@ -135,7 +135,7 @@ public class AddPaymentActivity extends AppCompatActivity {
     }
 
     private void save(String timestamp) throws IOException {
-        DatabaseReference monthReference = FirebaseDatabase.getInstance("https://smart-wallet-27310-default-rtdb.europe-west1.firebasedatabase.app/").getReference().child("wallet").child(timestamp);
+        DatabaseReference monthReference = FirebaseDatabase.getInstance("https://smartwallet-5a50b-default-rtdb.firebaseio.com/").getReference().child("wallet").child(timestamp);
         monthReference.keepSynced(true);
         Payment payment = new Payment(timestamp, Double.parseDouble(pCost.getText().toString()), pOrder.getText().toString(), pType.getText().toString(), AppState.get().getUserID());
         AppState.get().updateLocalBackup(this, payment, true);
