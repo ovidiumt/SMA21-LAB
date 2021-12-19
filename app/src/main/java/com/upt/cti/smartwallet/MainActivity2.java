@@ -96,7 +96,7 @@ public class MainActivity2 extends AppCompatActivity {
             currentMonth = Month.monthFromTimestamp(AppState.getCurrentTimeDate());
 
         // setup firebase
-        final FirebaseDatabase database = FirebaseDatabase.getInstance("https://smart-wallet-27310-default-rtdb.europe-west1.firebasedatabase.app/");
+        final FirebaseDatabase database = FirebaseDatabase.getInstance("https://smartwallet-5a50b-default-rtdb.firebaseio.com/");
         databaseReference = database.getReference();
 
         listPayments.setOnItemClickListener((adapterView, view, i, l) -> {
